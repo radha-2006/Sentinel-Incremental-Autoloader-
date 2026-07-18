@@ -1,0 +1,173 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "environment": {
+            "type": "string",
+            "defaultValue": "dev",
+            "metadata": {
+                "description": "Environment code (dev, test, prod)"
+            }
+        },
+        "base_path": {
+            "type": "string",
+            "defaultValue": "abfss://delta-forge@deltaforge.dfs.core.windows.net/",
+            "metadata": {
+                "description": "Root ADLS Gen2 storage folder path"
+            }
+        },
+        "database_name": {
+            "type": "string",
+            "defaultValue": "legacy_hms_db",
+            "metadata": {
+                "description": "Hive Metastore target database"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "SentinelMedallionPipeline",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "description": "Orchestrates the Project Sentinel incremental Medallion ingestion pipeline.",
+                "activities": [
+                    {
+                        "name": "01_Bronze_Ingestion",
+                        "description": "Ingests raw CSV transaction data from the ADLS landing zone using Auto Loader.",
+                        "type": "DatabricksNotebook",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.02:00:00",
+                            "retry": 2,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "notebookPath": "/Shared/Project_Sentinel/notebooks/01_bronze_ingestion",
+                            "baseParameters": {
+                                "environment": {
+                                    "value": "@pipeline().parameters.environment",
+                                    "type": "Expression"
+                                },
+                                "base_path": {
+                                    "value": "@pipeline().parameters.base_path",
+                                    "type": "Expression"
+                                },
+                                "database_name": {
+                                    "value": "@pipeline().parameters.database_name",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "linkedServiceName": {
+                            "referenceName": "AzureDatabricksLinkedService",
+                            "type": "LinkedServiceReference"
+                        }
+                    },
+                    {
+                        "name": "02_Silver_Cleansing",
+                        "description": "Filters null values, deduplicates transactions, and merges them into the Silver Delta Table.",
+                        "type": "DatabricksNotebook",
+                        "dependsOn": [
+                            {
+                                "activity": "01_Bronze_Ingestion",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.02:00:00",
+                            "retry": 1,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "notebookPath": "/Shared/Project_Sentinel/notebooks/02_silver_cleansing",
+                            "baseParameters": {
+                                "environment": {
+                                    "value": "@pipeline().parameters.environment",
+                                    "type": "Expression"
+                                },
+                                "base_path": {
+                                    "value": "@pipeline().parameters.base_path",
+                                    "type": "Expression"
+                                },
+                                "database_name": {
+                                    "value": "@pipeline().parameters.database_name",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "linkedServiceName": {
+                            "referenceName": "AzureDatabricksLinkedService",
+                            "type": "LinkedServiceReference"
+                        }
+                    },
+                    {
+                        "name": "03_Gold_KPI_Metrics",
+                        "description": "Calculates aggregation KPIs and detects security anomalies in complete output mode.",
+                        "type": "DatabricksNotebook",
+                        "dependsOn": [
+                            {
+                                "activity": "02_Silver_Cleansing",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.01:00:00",
+                            "retry": 1,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "notebookPath": "/Shared/Project_Sentinel/notebooks/03_gold_metrics",
+                            "baseParameters": {
+                                "environment": {
+                                    "value": "@pipeline().parameters.environment",
+                                    "type": "Expression"
+                                },
+                                "base_path": {
+                                    "value": "@pipeline().parameters.base_path",
+                                    "type": "Expression"
+                                },
+                                "database_name": {
+                                    "value": "@pipeline().parameters.database_name",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "linkedServiceName": {
+                            "referenceName": "AzureDatabricksLinkedService",
+                            "type": "LinkedServiceReference"
+                        }
+                    }
+                ],
+                "parameters": {
+                    "environment": {
+                        "type": "string",
+                        "defaultValue": "dev"
+                    },
+                    "base_path": {
+                        "type": "string",
+                        "defaultValue": "abfss://delta-forge@deltaforge.dfs.core.windows.net/"
+                    },
+                    "database_name": {
+                        "type": "string",
+                        "defaultValue": "legacy_hms_db"
+                    }
+                }
+            }
+        }
+    ]
+}
