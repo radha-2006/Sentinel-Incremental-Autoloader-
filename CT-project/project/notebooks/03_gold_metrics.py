@@ -1,6 +1,8 @@
 
 
 from pyspark.sql.functions import count, max, sum, avg, col, when
+with open("/Workspace/Users/YOUR_EMAIL@gmail.com/00_setup_and_configs.py") as f:
+    exec(f.read())
 
 
 gold_metrics_df = (spark.readStream
