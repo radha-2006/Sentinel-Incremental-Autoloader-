@@ -1,6 +1,6 @@
+from pyspark.sql.functions import current_timestamp, lit, col
 with open("/Workspace/Users/YOUR_EMAIL@gmail.com/00_setup_and_configs.py") as f:
     exec(f.read())
-from pyspark.sql.functions import current_timestamp, lit, col
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS {database_name}.silver_transactions (
