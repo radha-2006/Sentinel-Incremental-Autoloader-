@@ -1,7 +1,8 @@
 
 
 from pyspark.sql.functions import current_timestamp, col
-
+with open("/Workspace/Users/YOUR_EMAIL@gmail.com/00_setup_and_configs.py") as f:
+    exec(f.read())
 
 bronze_df = (spark.readStream
     .format("cloudFiles")
