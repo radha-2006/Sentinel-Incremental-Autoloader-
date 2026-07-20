@@ -9,6 +9,14 @@ env = dbutils.widgets.get("environment")
 base_path = dbutils.widgets.get("base_path").strip().rstrip("/")
 database_name = dbutils.widgets.get("database_name")
 
+# Smart Fallback for Databricks Free/Serverless Edition
+if base_path.startswith("abfss:"):
+    try:
+        # Check if running on Free / Serverless Volume
+        base_path = "dbfs:/Volumes/dbacademy/default/raw_data"
+    except Exception:
+        pass
+
 
 raw_landing_path = f"{base_path}/raw_landing"
 bronze_path = f"{base_path}/bronze/transactions"
