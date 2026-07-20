@@ -11,7 +11,6 @@ bronze_df = (spark.readStream
     .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
     .option("cloudFiles.rescuedDataColumn", "_rescued_data")
     .load(raw_landing_path)
-    # Correcting structural metadata referencing from text literal to column expression
     .withColumn("file_name", col("_metadata.file_path")) 
     .withColumn("file_arrival_time", col("_metadata.file_modification_time"))
     .withColumn("ingestion_time", current_timestamp())
